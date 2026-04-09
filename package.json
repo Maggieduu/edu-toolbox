@@ -1,0 +1,13 @@
+{
+  "name": "edu-toolbox",
+  "version": "1.0.0",
+  "description": "",
+  "main": "generate.js",
+  "scripts": {
+    "start": "node generate.js",
+    "build": "node generate.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC"
+}

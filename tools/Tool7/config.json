@@ -1,0 +1,9 @@
+{
+  "id": "Tool7",
+  "icon": "🔧",
+  "title": "随机点名器",
+  "desc": "老师输入学生名字，随机抽取一位幸运同学",
+  "titleEn": "Name Picker",
+  "category": "tool",
+  "color": "from-[#ff8e7c] to-[#ff7a5c]"
+}

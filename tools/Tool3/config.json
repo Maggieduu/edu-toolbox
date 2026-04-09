@@ -1,0 +1,9 @@
+{
+  "id": "Tool3",
+  "icon": "🖨️",
+  "title": "汉字大侦探",
+  "desc": "可生成词语搜索的工作纸",
+  "titleEn": "Chinese Words Detective",
+  "category": "tool",
+  "color": "from-blue-400 to-blue-600"
+}

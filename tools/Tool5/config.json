@@ -1,0 +1,9 @@
+{
+  "id": "Tool5",
+  "icon": "🎮",
+  "title": "贪吃蛇",
+  "desc": "吃掉错误的单词",
+  "titleEn": "Gluttonous Snake",
+  "category": "game",
+  "color": "from-[#c8c8e9] to-[#b5b5d9]"
+}

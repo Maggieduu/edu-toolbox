@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔬汉字大侦探</title>
+    <style>
+        body {
+            font-family: "楷体", sans-serif;
+            background-color: white;
+            color: black;
+            text-align: center;
+            margin: 20px;
+        }
+        h1 {
+            font-size: 32px;
+        }
+        #inputArea {
+            margin: 20px;
+            padding: 10px;
+            width: 400px;
+            height: 150px;
+            font-size: 16px;
+        }
+        #grid {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 500px;
+            text-align: center;
+        }
+        #grid td {
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            font-size: 20px;
+            cursor: pointer;
+        }
+        .selected {
+            background-color: yellow;
+        }
+        .found {
+            color: red;
+            font-size: 18px;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        #wordList {
+            margin: 20px;
+            display: none;
+        }
+        /* 修改后的横向布局样式 */
+        #wordList h2 {
+            text-align: center;
+        }
+        #wordList div {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            border: 2px dashed #333;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        #wordList span {
+            padding: 5px;
+            background-color: #e0f7fa;
+            border: 1px solid #00bcd4;
+            border-radius: 5px;
+            margin: 5px;
+        }
+        /* 奖励界面样式 */
+        #reward {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #000;
+            z-index: 9999;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        #fireworks {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            left: 0;
+            z-index: 1;
+        }
+        .firework {
+            position: absolute;
+            border-radius: 50%;
+            animation: fireworks 1.5s linear;
+        }
+        @keyframes fireworks {
+            0% {
+                transform: scale(0);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1);
+                opacity: 0.5;
+            }
+            100% {
+                transform: scale(1.5);
+                opacity: 0;
+            }
+        }
+        .trophy {
+            color: yellow;
+            font-size: 260px;
+            font-weight: bold;
+            position: absolute;
+            bottom: -80px;
+            z-index: 2;
+            transform: scale(0);
+            transition: transform 2s ease-in-out;
+        }
+        .restart-btn {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 20px;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            z-index: 10;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            transition: all 0.3s;
+            opacity: 0;
+        }
+        .restart-btn:hover {
+            transform: translate(-50%, -50%) scale(1.05);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+        .restart-btn.show {
+            opacity: 1;
+        }
+    </style>
+    <style>
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #555;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        body {
+            padding-top: 60px;
+        }
+        @media (max-width: 540px) {
+            .back-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" class="back-btn">
+        <span>←</span> 返回工具箱
+    </a>
+    <h1>🔬汉字大侦探</h1>
+    <textarea id="inputArea" placeholder="请输入中文词语，每个词语占一行"></textarea>
+    <button id="generateButton">生成</button>
+    <div id="gridContainer"></div>
+    <div id="wordList">
+        <h2>请聪明的你找到以下内容吧！</h2>
+        <div id="wordsContainer"></div>
+    </div>
+    <div id="reward">
+        <div id="fireworks"></div>
+        <div class="trophy">🏆</div>
+        <button class="restart-btn" onclick="restartGame()">🔄 再来一次</button>
+    </div>
+    <!-- 添加音频标签 -->
+    <audio id="clapSound" src="https://example.com/clap.mp3"></audio>
+    <script>
+        let selectedGrid;
+        let wordsInfo = [];
+        let allWordsFound = false;
+
+        document.getElementById('generateButton').onclick = function() {
+            generateGame();
+        };
+
+        function generateGame() {
+            const input = document.getElementById('inputArea').value;
+            const words = input.split('\n').filter(word => word.trim() !== '');
+            const gridSize = 8;
+            const grid = Array(gridSize).fill().map(() => Array(gridSize).fill(null));
+            wordsInfo = [];
+            const filledWords = [];
+
+            // 将输入框和按钮隐藏
+            document.getElementById('inputArea').style.display = 'none';
+            document.getElementById('generateButton').style.display = 'none';
+            document.getElementById('wordList').style.display = 'block';
+
+            try {
+                // 遍历每个词语，尝试将其放入网格
+                words.forEach(word => {
+                    if (word.length === 0) return;
+                    const result = placeWord(word, grid, gridSize);
+                    if (!result.placed) {
+                        throw new Error(`无法将词语“${word}”放入网格，请检查字数限制（最多64字）`);
+                    }
+                    filledWords.push(word);
+                    // 记录该词语的坐标
+                    const positions = [];
+                    for (let i = 0; i < word.length; i++) {
+                        const row = result.startRow + i * result.direction.dy;
+                        const col = result.startCol + i * result.direction.dx;
+                        positions.push({ row, col });
+                    }
+                    wordsInfo.push({ word, positions });
+                });
+
+                // 填充随机汉字到剩余格子
+                fillRandomChinese(grid);
+
+                // 生成HTML表格
+                const gridHTML = [];
+                selectedGrid = Array(gridSize).fill().map(() => Array(gridSize).fill(false));
+                for (let i = 0; i < grid.length; i++) {
+                    let rowHTML = '<tr>';
+                    for (let j = 0; j < grid[i].length; j++) {
+                        rowHTML += `<td data-row="${i}" data-col="${j}">${grid[i][j]}</td>`;
+                    }
+                    rowHTML += '</tr>';
+                    gridHTML.push(rowHTML);
+                }
+                document.getElementById('gridContainer').innerHTML = `
+                    <table id="grid">
+                        ${gridHTML.join('')}
+                    </table>
+                `;
+
+                // 显示单词清单
+                const wordsContainer = document.getElementById('wordsContainer');
+                wordsContainer.innerHTML = filledWords.map((word, index) => {
+                    return `<span id="word-${index}" class="word">${word}</span>`;
+                }).join('');
+
+                // 为每个格子添加点击事件
+                const gridTable = document.getElementById('grid');
+                gridTable.addEventListener('click', handleGridClick);
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // 随机放置词语到网格
+        function placeWord(word, grid, gridSize) {
+            const directions = [
+                { dx: 1, dy: 0 },   // 右
+                { dx: -1, dy: 0 },  // 左
+                { dx: 0, dy: 1 },   // 下
+                { dx: 0, dy: -1 },  // 上
+                { dx: 1, dy: 1 },   // 右下
+                { dx: -1, dy: -1 }, // 左上
+                { dx: 1, dy: -1 },  // 右上
+                { dx: -1, dy: 1 },  // 左下
+            ];
+
+            const maxAttempts = 100;
+            let placed = false;
+            let startRow, startCol, direction;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                startRow = Math.floor(Math.random() * gridSize);
+                startCol = Math.floor(Math.random() * gridSize);
+                direction = directions[Math.floor(Math.random() * directions.length)];
+                let canPlace = true;
+
+                // 检查位置是否可用
+                for (let i = 0; i < word.length; i++) {
+                    const row = startRow + i * direction.dy;
+                    const col = startCol + i * direction.dx;
+
+                    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
+                        canPlace = false;
+                        break;
+                    }
+                    if (grid[row][col] !== null && grid[row][col] !== word[i]) {
+                        canPlace = false;
+                        break;
+                    }
+                }
+
+                if (canPlace) {
+                    // 填充词语
+                    for (let i = 0; i < word.length; i++) {
+                        const row = startRow + i * direction.dy;
+                        const col = startCol + i * direction.dx;
+                        grid[row][col] = word[i];
+                    }
+                    placed = true;
+                    break;
+                }
+            }
+
+            return {
+                placed,
+                startRow,
+                startCol,
+                direction
+            };
+        }
+
+        // 填充随机汉字到空白格子
+        function fillRandomChinese(grid) {
+            const commonChars = '的们字他们的么在出是中上以主国下大来用发到人子了年进出本国工和们书外行存会法大他这家日下有进外出不上我你他来全上个而小从别上字国日下也过在出是上中以之的之之的之的之在出是中的在发在是中以主国下大来用发到人子了年进出本国工和';
+            const characters = commonChars.split('');
+
+            for (let i = 0; i < grid.length; i++) {
+                for (let j = 0; j < grid[i].length; j++) {
+                    if (grid[i][j] === null) {
+                        const randomIndex = Math.floor(Math.random() * characters.length);
+                        grid[i][j] = characters[randomIndex];
+                    }
+                }
+            }
+        }
+
+        // 处理格子点击事件
+        function handleGridClick(event) {
+            const target = event.target;
+            if (target.tagName === 'TD') {
+                const row = parseInt(target.dataset.row);
+                const col = parseInt(target.dataset.col);
+                // 切换选中状态
+                selectedGrid[row][col] = !selectedGrid[row][col];
+                // 更新背景颜色
+                target.classList.toggle('selected');
+                // 检查所有词语是否被完全选中
+                checkWordsFound();
+            }
+        }
+
+        // 检查所有词语是否被完全选中
+        function checkWordsFound() {
+            wordsInfo.forEach(({ word, positions }, index) => {
+                const allSelected = positions.every(pos => {
+                    return selectedGrid[pos.row][pos.col];
+                });
+                const wordSpan = document.getElementById(`word-${index}`);
+                if (allSelected) {
+                    wordSpan.classList.add('found');
+                } else {
+                    wordSpan.classList.remove('found');
+                }
+            });
+
+            // 检查是否所有词语都被找到
+            checkAllWordsFound();
+        }
+
+        // 检查是否所有词语都被找到
+        function checkAllWordsFound() {
+            const allFound = wordsInfo.every(({ positions }) => {
+                return positions.every(pos => {
+                    return selectedGrid[pos.row][pos.col];
+                });
+            });
+
+            if (allFound && !allWordsFound) {
+                allWordsFound = true;
+                // 禁用格子点击事件
+                document.getElementById('grid').removeEventListener('click', handleGridClick);
+                // 显示奖励界面
+                setTimeout(() => {
+                    showReward();
+                }, 500);
+            }
+        }
+
+        // 显示奖励界面
+        function showReward() {
+            const reward = document.getElementById('reward');
+            const body = document.body;
+            const gridContainer = document.getElementById('gridContainer');
+            const wordList = document.getElementById('wordList');
+            const fireworks = document.getElementById('fireworks');
+            const trophy = document.querySelector('.trophy');
+            const clapSound = document.getElementById('clapSound');
+
+            // 隐藏所有内容
+            body.style.backgroundColor = '#000';
+            gridContainer.style.display = 'none';
+            wordList.style.display = 'none';
+            reward.style.display = 'flex';
+
+            // 创建烟花动画
+            for (let i = 0; i < 100; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.backgroundColor = `rgb(${Math.random() * 256}, ${Math.random() * 256}, ${Math.random() * 256})`;
+                firework.style.width = `${Math.random() * 6 + 2}px`;
+                firework.style.height = `${Math.random() * 6 + 2}px`;
+                firework.style.left = `${Math.random() * 100}%`;
+                firework.style.top = `${Math.random() * 100}%`;
+                fireworks.appendChild(firework);
+            }
+
+            // 播放鼓掌声音
+            clapSound.play();
+
+            // 奖杯动画
+            setTimeout(() => {
+                trophy.style.transform = 'translateY(-200px) scale(1)';
+                trophy.style.transition = 'transform 2s ease-in-out';
+            }, 1500);
+
+            // 显示再来一次按钮
+            setTimeout(() => {
+                document.querySelector('.restart-btn').classList.add('show');
+            }, 2500);
+        }
+
+        // 重置游戏
+        function restartGame() {
+            // 重置所有变量
+            selectedGrid = null;
+            allWordsFound = false;
+            foundWords = [];
+            gridSize = 0;
+            grid = [];
+            words = [];
+            allWordsFound = false;
+
+            // 隐藏奖励界面
+            const reward = document.getElementById('reward');
+            reward.style.display = 'none';
+
+            // 清空内容
+            document.getElementById('gridContainer').innerHTML = '';
+            document.getElementById('wordsContainer').innerHTML = '';
+            document.getElementById('fireworks').innerHTML = '';
+
+            // 恢复背景
+            document.body.style.backgroundColor = 'white';
+
+            // 显示输入区域
+            document.getElementById('inputArea').style.display = 'block';
+            document.getElementById('generateButton').style.display = 'inline-block';
+            document.getElementById('wordList').style.display = 'none';
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrambled Sentence Game</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            background-color: #87CEEB;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+            position: relative;
+        }
+        
+        h1 {
+            color: #FF0000;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .upload-section {
+            text-align: center;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        .btn {
+            background-color: #FF0000;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.2em;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: transform 0.1s;
+        }
+        
+        .btn:hover {
+            background-color: #CC0000;
+            transform: scale(1.05);
+        }
+        
+        #uploadBtn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+        
+        .progress-section {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 30px;
+            background-color: #F0F0F0;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        
+        .progress {
+            height: 100%;
+            background-color: #FFD700;
+            width: 0%;
+            transition: width 0.5s ease;
+            z-index: 1;
+        }
+        
+        .coin {
+            font-size: 24px;
+            margin-left: 5px;
+            z-index: 2;
+        }
+        
+        .game-area {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-top: 20px;
+        }
+        
+        .word-card {
+            background-color: #F0F0F0;
+            border: 2px solid #FF0000;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: bold;
+        }
+        
+        .word-card:hover {
+            background-color: #E0E0E0;
+            transform: translateY(-2px);
+        }
+        
+        .word-card.selected {
+            background-color: #FFCC00;
+            border-color: #FFCC00;
+        }
+        
+        .sentence-area {
+            margin-top: 30px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        .sentence-word {
+            background-color: #FFCC00;
+            border: 2px solid #FFCC00;
+            border-radius: 10px;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: move;
+            transition: all 0.2s;
+            user-select: none;
+            font-weight: bold;
+        }
+        
+        .sentence-word:hover {
+            transform: scale(1.05);
+        }
+        
+        .correct-animation {
+            animation: correct 0.5s ease;
+        }
+        
+        @keyframes correct {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); }
+        }
+        
+        .wrong-animation {
+            animation: wrong 0.3s ease;
+        }
+        
+        @keyframes wrong {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-5px); }
+            100% { transform: translateX(0); }
+        }
+        
+        .result-message {
+            text-align: center;
+            font-size: 1.5em;
+            margin: 20px 0;
+            display: none;
+        }
+        
+        .correct-message {
+            color: #00CC00;
+        }
+        
+        .wrong-message {
+            color: #FF0000;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .volume-control {
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .volume-control label {
+            margin-right: 10px;
+        }
+        
+        .volume-control input {
+            width: 200px;
+        }
+        
+        .celebration {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .celebration h2 {
+            font-size: 3em;
+            color: #FF0000;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .celebration .stars {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .star {
+            position: absolute;
+            color: yellow;
+            font-size: 20px;
+            animation: twinkle 1.5s infinite;
+        }
+        
+        @keyframes twinkle {
+            0% { opacity: 0; transform: scale(0.5); }
+            50% { opacity: 1; transform: scale(1); }
+            100% { opacity: 0; transform: scale(0.5); }
+        }
+
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #555;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        body {
+            padding-top: 60px;
+        }
+        @media (max-width: 540px) {
+            .back-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" class="back-btn">
+        <span>←</span> 返回工具箱
+    </a>
+    <div class="container">
+        <h1>Scrambled Sentence</h1>
+        
+        <div class="upload-section">
+            <button class="btn" id="uploadBtn">Upload</button>
+            <input type="file" id="wordFile" accept=".txt" style="display: none;">
+            <button class="btn" id="startBtn" disabled>Start</button>
+            <button class="btn" id="restartBtn">Restart</button>
+        </div>
+        
+        <div class="volume-control">
+            <label for="bgmVolume">Background Music Volume:</label>
+            <input type="range" id="bgmVolume" min="0" max="1" step="0.1" value="0.5">
+        </div>
+        
+        <div class="progress-section">
+            <div class="progress-bar">
+                <div class="progress"></div>
+                <span class="coin">🪙</span>
+            </div>
+            <p id="progressText">Progress: 0/0</p>
+        </div>
+        
+        <div class="game-area" id="gameArea">
+            <!-- 单词卡片将在这里动态生成 -->
+        </div>
+        
+        <div class="sentence-area" id="sentenceArea">
+            <!-- 句子区域将在这里动态生成 -->
+        </div>
+        
+        <div class="result-message" id="resultMessage"></div>
+    </div>
+
+    <div class="celebration" id="celebration">
+        <h2>Congratulation 🎉</h2>
+        <div class="stars" id="stars"></div>
+    </div>
+
+    <audio id="correctSound" src="correct.mp3"></audio>
+    <audio id="wrongSound" src="wrong.mp3"></audio>
+    <audio id="bgmSound" src="BGM.mp3" loop></audio>
+    <audio id="victorySound" src="victory.mp3"></audio>
+
+    <script>
+        // 全局变量
+        let words = [];
+        let currentSentence = [];
+        let correctSentences = [];
+        let currentQuestionIndex = 0;
+        let totalQuestions = 0;
+        let originalPositions = [];
+        
+        // DOM元素
+        const wordFileInput = document.getElementById('wordFile');
+        const uploadBtn = document.getElementById('uploadBtn');
+        const startBtn = document.getElementById('startBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const gameArea = document.getElementById('gameArea');
+        const sentenceArea = document.getElementById('sentenceArea');
+        const progressBar = document.querySelector('.progress');
+        const progressText = document.getElementById('progressText');
+        const resultMessage = document.getElementById('resultMessage');
+        const correctSound = document.getElementById('correctSound');
+        const wrongSound = document.getElementById('wrongSound');
+        const bgmSound = document.getElementById('bgmSound');
+        const victorySound = document.getElementById('victorySound');
+        const bgmVolume = document.getElementById('bgmVolume');
+        const celebration = document.getElementById('celebration');
+        const starsContainer = document.getElementById('stars');
+        
+        // 文件上传处理
+        uploadBtn.addEventListener('click', function() {
+            wordFileInput.click();
+        });
+        
+        wordFileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    const content = event.target.result.trim();
+                    words = content.split('\n').map(line => line.trim());
+                    totalQuestions = words.length;
+                    startBtn.disabled = false;
+                    bgmSound.play();
+                    bgmSound.volume = bgmVolume.value;
+                };
+                reader.readAsText(file);
+            }
+        });
+        
+        // 背景音乐音量控制
+        bgmVolume.addEventListener('input', function() {
+            bgmSound.volume = this.value;
+        });
+        
+        // 开始游戏按钮
+        startBtn.addEventListener('click', function() {
+            if (currentQuestionIndex >= totalQuestions) {
+                showCelebration();
+                return;
+            }
+            
+            // 重置游戏区域
+            gameArea.innerHTML = '';
+            sentenceArea.innerHTML = '';
+            resultMessage.className = 'result-message hidden';
+            
+            // 获取当前句子
+            const currentSentenceStr = words[currentQuestionIndex];
+            correctSentences = currentSentenceStr.split(' ');
+            
+            // 打乱单词顺序
+            const shuffledWords = [...correctSentences];
+            for (let i = shuffledWords.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffledWords[i], shuffledWords[j]] = [shuffledWords[j], shuffledWords[i]];
+            }
+            
+            // 创建单词卡片
+            shuffledWords.forEach(word => {
+                const wordCard = document.createElement('div');
+                wordCard.className = 'word-card';
+                wordCard.textContent = word;
+                wordCard.dataset.word = word;
+                
+                wordCard.addEventListener('click', function() {
+                    addToSentence(wordCard);
+                });
+                
+                gameArea.appendChild(wordCard);
+            });
+        });
+        
+        // 重新开始按钮
+        restartBtn.addEventListener('click', function() {
+            currentQuestionIndex = 0;
+            progressBar.style.width = '0%';
+            progressText.textContent = `Progress: ${currentQuestionIndex}/${totalQuestions}`;
+            startBtn.click();
+        });
+        
+        // 添加到句子
+        function addToSentence(wordCard) {
+            const word = wordCard.dataset.word;
+            
+            // 移除单词卡片
+            wordCard.style.display = 'none';
+            
+            // 添加到句子区域
+            const sentenceWord = document.createElement('div');
+            sentenceWord.className = 'sentence-word';
+            sentenceWord.textContent = word;
+            
+            sentenceWord.addEventListener('click', function() {
+                // 移除单词并放回游戏区域
+                sentenceWord.remove();
+                wordCard.style.display = 'flex';
+            });
+            
+            sentenceArea.appendChild(sentenceWord);
+            
+            // 检查是否完成句子
+            checkSentence();
+        }
+        
+        // 检查句子是否正确
+        function checkSentence() {
+            const sentenceWords = Array.from(sentenceArea.children);
+            if (sentenceWords.length !== correctSentences.length) return;
+            
+            const userSentence = sentenceWords.map(word => word.textContent.trim());
+            
+            if (arraysEqual(userSentence, correctSentences)) {
+                // 正确
+                correctSound.play();
+                resultMessage.className = 'result-message correct-message';
+                resultMessage.textContent = 'Correct! Well done!';
+                resultMessage.style.display = 'block';
+                
+                // 更新进度条
+                currentQuestionIndex++;
+                const progress = (currentQuestionIndex / totalQuestions) * 100;
+                progressBar.style.width = progress + '%';
+                progressText.textContent = `Progress: ${currentQuestionIndex}/${totalQuestions}`;
+                
+                // 自动进入下一题
+                setTimeout(() => {
+                    startBtn.click();
+                }, 2000);
+            } else {
+                // 错误
+                wrongSound.play();
+                resultMessage.className = 'result-message wrong-message';
+                resultMessage.textContent = 'Try again!';
+                resultMessage.style.display = 'block';
+                
+                // 震动动画
+                sentenceArea.classList.add('wrong-animation');
+                setTimeout(() => {
+                    sentenceArea.classList.remove('wrong-animation');
+                    // 复位单词
+                    sentenceWords.forEach(word => {
+                        const originalWord = gameArea.querySelector(`[data-word="${word.textContent}"]`);
+                        if (originalWord) {
+                            originalWord.style.display = 'flex';
+                        }
+                        word.remove();
+                    });
+                    resultMessage.style.display = 'none';
+                }, 300);
+            }
+        }
+        
+        // 比较数组是否相等
+        function arraysEqual(arr1, arr2) {
+            if (arr1.length !== arr2.length) return false;
+            for (let i = 0; i < arr1.length; i++) {
+                if (arr1[i] !== arr2[i]) return false;
+            }
+            return true;
+        }
+        
+        // 显示庆祝画面
+        function showCelebration() {
+            victorySound.play();
+            celebration.style.display = 'flex';
+            
+            // 创建星星
+            for (let i = 0; i < 50; i++) {
+                const star = document.createElement('span');
+                star.className = 'star';
+                star.textContent = '⭐';
+                star.style.left = `${Math.random() * 100}%`;
+                star.style.top = `${Math.random() * 100}%`;
+                star.style.animationDelay = `${Math.random() * 2}s`;
+                starsContainer.appendChild(star);
+            }
+            
+            // 3秒后隐藏庆祝画面
+            setTimeout(() => {
+                celebration.style.display = 'none';
+                starsContainer.innerHTML = '';
+                restartBtn.click();
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

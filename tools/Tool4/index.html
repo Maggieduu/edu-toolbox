@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生词翻翻看 - Edu Toolbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        rose: {
+                            800: '#7d1339',
+                            700: '#9e1b47',
+                            600: '#eb6d82',
+                            400: '#fba8ad',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.sheetjs.com/xlsx-0.19.3/package/dist/xlsx.full.min.js';
+            script.onload = initGame;
+            document.head.appendChild(script);
+        });
+    </script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        .card {
+            width: 90px;
+            height: 90px;
+            background-color: #eb6d82;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            transition: transform 0.3s;
+            transform-style: preserve-3d;
+        }
+        .card.flipped { transform: rotateY(180deg); }
+        .card-content {
+            backface-visibility: hidden;
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 10px;
+        }
+        .card-back { background-color: #eb6d82; color: #fff; font-size: 24px; }
+        .card-front {
+            background-color: #fff; color: #000; transform: rotateY(180deg);
+            font-size: 14px; padding: 5px; text-align: center; word-break: break-word;
+        }
+        .card-front.chinese { font-weight: bold; letter-spacing: 0.5px; }
+        .card:hover { transform: scale(1.05); }
+        .card.flipped:hover { transform: rotateY(180deg) scale(1.02); }
+        @media (max-width: 600px) {
+            .card { width: 75px; height: 75px; }
+            .card-front { font-size: 12px; }
+        }
+    </style>
+</head>
+<body class="bg-rose-400 min-h-screen">
+
+    <!-- 返回按钮 -->
+    <a href="../../index.html"
+       style="position:fixed;top:15px;left:15px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);text-decoration:none;color:#333;font-weight:500;z-index:9999;display:flex;align-items:center;gap:5px;">
+        <span>←</span> 返回工具箱
+    </a>
+
+    <!-- 工具标题 -->
+    <div class="text-center pt-20 pb-6">
+        <h1 class="text-4xl font-bold text-rose-800 mb-2">🃏 生词翻翻看</h1>
+        <p class="text-rose-700">上传 Excel 文件，创建专属记忆卡牌游戏</p>
+    </div>
+
+    <!-- 游戏区域 -->
+    <div class="max-w-4xl mx-auto px-4 pb-8">
+        <!-- 说明卡片 -->
+        <div id="instruction-panel" class="bg-white/80 backdrop-blur-sm text-rose-800 p-6 rounded-2xl shadow-xl mb-6 border border-rose-200">
+            <h2 class="text-xl font-bold text-center mb-4 flex items-center justify-center gap-2">
+                📝 教师指南
+            </h2>
+            <ol class="list-decimal list-inside space-y-3 text-base">
+                <li><strong class="text-rose-700">准备 Excel：</strong>在 <b>A 列</b>放词汇，<b>B 列</b>放对应翻译</li>
+                <li><strong class="text-rose-700">上传并生成：</strong>点击"上传 Excel 文件"，选择文件后点击"生成游戏"</li>
+                <li><strong class="text-rose-700">分享给学生：</strong>复制生成的链接，发送给学生即可开始游戏！</li>
+            </ol>
+        </div>
+
+        <!-- 输入区域 -->
+        <div id="input-panel" class="flex flex-col items-center gap-4 mb-6">
+            <div class="flex flex-wrap justify-center gap-3">
+                <label class="bg-white text-rose-800 px-6 py-3 rounded-xl shadow-lg cursor-pointer hover:bg-rose-50 hover:scale-105 transition-all duration-200 font-semibold border-2 border-rose-200 hover:border-rose-400">
+                    📁 1. 上传 Excel 文件
+                    <input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" />
+                </label>
+                <button id="generate-game" class="bg-rose-800 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-rose-700 hover:scale-105 transition-all duration-200 font-semibold border-2 border-rose-800">
+                    ✨ 2. 生成游戏链接
+                </button>
+            </div>
+            <div class="flex items-center gap-3">
+                <label class="text-rose-800 font-semibold">卡牌图标:</label>
+                <select id="icon-select" class="bg-white text-rose-800 px-4 py-2 rounded-xl border-2 border-rose-200 font-semibold focus:outline-none focus:border-rose-400 cursor-pointer">
+                    <option value="🐾">🐾 爪子</option>
+                    <option value="⭐">⭐ 星星</option>
+                    <option value="❤️">❤️ 爱心</option>
+                    <option value="🎮">🎮 游戏</option>
+                    <option value="🚀">🚀 火箭</option>
+                    <option value="🌈">🌈 彩虹</option>
+                    <option value="🎨">🎨 画板</option>
+                    <option value="🔮">🔮 水晶球</option>
+                    <option value="🦄">🦄 独角兽</option>
+                    <option value="🍎">🍎 苹果</option>
+                </select>
+            </div>
+            <div id="error-message" class="text-red-600 font-bold hidden bg-red-100 px-4 py-2 rounded-lg"></div>
+        </div>
+
+        <!-- 分享链接 -->
+        <div id="share-box" class="hidden bg-white p-5 rounded-2xl shadow-xl mb-6 text-center border-2 border-dashed border-rose-400 max-w-lg mx-auto">
+            <p class="text-rose-800 font-bold text-lg mb-3">🎉 游戏已创建！分享这个链接给学生：</p>
+            <input type="text" id="share-url" readonly class="w-full px-4 py-2 rounded-lg border-2 border-rose-200 text-sm mb-3 focus:outline-none focus:border-rose-400" />
+            <button id="copy-link-btn" class="bg-green-500 text-white px-6 py-2 rounded-xl shadow-lg hover:bg-green-600 hover:scale-105 transition-all duration-200 font-semibold">
+                📋 复制链接
+            </button>
+        </div>
+
+        <!-- 统计 -->
+        <div class="flex gap-6 mb-4 justify-center">
+            <div id="timer" class="bg-white/80 backdrop-blur-sm px-5 py-2 rounded-xl shadow-lg font-bold text-rose-800 text-lg">
+                ⏱️ 用时: 0秒
+            </div>
+            <div id="score" class="bg-white/80 backdrop-blur-sm px-5 py-2 rounded-xl shadow-lg font-bold text-rose-800 text-lg">
+                🎯 配对: 0 / 0
+            </div>
+        </div>
+
+        <!-- 游戏按钮 -->
+        <div class="flex gap-4 mb-6 justify-center">
+            <button id="shuffle-button" class="bg-rose-600 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-rose-500 hover:scale-105 transition-all duration-200 font-semibold text-lg">
+                🔀 重新洗牌
+            </button>
+            <button id="start-button" class="bg-rose-800 text-white px-6 py-3 rounded-xl shadow-lg hover:bg-rose-700 hover:scale-105 transition-all duration-200 font-semibold text-lg">
+                ▶️ 开始游戏
+            </button>
+        </div>
+
+        <!-- 卡牌容器 -->
+        <div id="card-container" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-6 gap-3 mb-6 w-full max-w-3xl mx-auto justify-items-center"></div>
+
+        <!-- 成功消息 -->
+        <div id="success-message" class="hidden text-3xl font-bold text-rose-800 text-center mt-6 animate-bounce">
+            🎆 恭喜！你赢了！🎆
+        </div>
+    </div>
+
+    <!-- 底部说明 -->
+    <footer class="text-center py-8 text-rose-700/50 text-sm">
+        <p>生词翻翻看 | Edu Toolbox</p>
+    </footer>
+
+    <script>
+        let wordPairs = [];
+        let selectedIcon = '🐾';
+        let timer = 0;
+        let timerInterval = null;
+        let matchedCards = 0;
+        let flippedCards = [];
+        let isFlipping = false;
+
+        function initGame() {
+            document.getElementById('generate-game').addEventListener('click', handleExcelUpload);
+            document.getElementById('shuffle-button').addEventListener('click', shuffleCards);
+            document.getElementById('start-button').addEventListener('click', startGame);
+            document.getElementById('copy-link-btn').addEventListener('click', copyShareLink);
+
+            document.getElementById('excel-upload').addEventListener('change', function() {
+                const fileName = this.files[0] ? this.files[0].name : 'No file selected';
+                const label = this.parentElement;
+                label.innerHTML = '📁 ' + (fileName.length > 20 ? fileName.substring(0, 20) + '...' : fileName) +
+                    '<input type="file" id="excel-upload" accept=".xlsx, .xls" class="hidden" />';
+            });
+
+            checkUrlForStudentData();
+        }
+
+        function checkUrlForStudentData() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const dataStr = urlParams.get('data');
+            if (dataStr) {
+                try {
+                    document.getElementById('instruction-panel').style.display = 'none';
+                    document.getElementById('input-panel').style.display = 'none';
+                    document.querySelector('h1').textContent = "🏃 开始游戏吧！";
+                    document.querySelector('p.text-rose-700').textContent = "找出所有配对的词汇吧！";
+
+                    const decoded = decodeURIComponent(atob(dataStr));
+                    const parsed = JSON.parse(decoded);
+                    selectedIcon = parsed.icon || '🐾';
+                    wordPairs = parsed.wordPairs.map((arr, index) => ({ english: arr[0], chinese: arr[1], pairId: index }));
+
+                    initCards();
+                    updateScoreDisplay();
+                } catch (e) {
+                    showError("无效的游戏链接，请联系老师获取新链接。");
+                }
+            }
+        }
+
+        function createShareLink() {
+            try {
+                selectedIcon = document.getElementById('icon-select').value;
+                const payload = { wordPairs: wordPairs.map(p => [p.english, p.chinese]), icon: selectedIcon };
+                const encoded = btoa(encodeURIComponent(JSON.stringify(payload)));
+                const shareUrl = window.location.origin + window.location.pathname + '?data=' + encoded;
+
+                document.getElementById('share-box').style.display = 'block';
+                document.getElementById('share-url').value = shareUrl;
+            } catch(e) {
+                console.error("链接生成失败，可能内容过多。");
+            }
+        }
+
+        function copyShareLink() {
+            const copyText = document.getElementById("share-url");
+            copyText.select();
+            document.execCommand("copy");
+            const btn = document.getElementById('copy-link-btn');
+            btn.textContent = "✅ 已复制！";
+            setTimeout(() => btn.textContent = "📋 复制链接", 2000);
+        }
+
+        function updateScoreDisplay() {
+            document.getElementById('score').innerHTML = `🎯 配对: ${matchedCards / 2} / ${wordPairs.length}`;
+        }
+
+        function handleExcelUpload() {
+            const file = document.getElementById('excel-upload').files[0];
+            if (!file) { showError("请先上传 Excel 文件。"); return; }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                    const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { header: 1 });
+
+                    wordPairs = [];
+                    jsonData.forEach(row => {
+                        if (row.length >= 2 && row[0] && row[1]) {
+                            wordPairs.push({ english: String(row[0]).trim(), chinese: String(row[1]).trim(), pairId: wordPairs.length });
+                        }
+                    });
+
+                    if (wordPairs.length < 1) { showError("没有找到有效的词汇配对。"); return; }
+                    if (wordPairs.length > 20) { showError("最多只能添加 20 个词汇配对。"); return; }
+
+                    hideError();
+                    initCards();
+                    updateScoreDisplay();
+                    createShareLink();
+                } catch (error) { showError("读取 Excel 文件出错。"); }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('error-message');
+            el.textContent = msg;
+            el.style.display = 'block';
+        }
+        function hideError() {
+            document.getElementById('error-message').style.display = 'none';
+        }
+
+        function initCards() {
+            const container = document.getElementById('card-container');
+            container.innerHTML = '';
+            const cards = [];
+            wordPairs.forEach(pair => {
+                cards.push({ content: pair.english, pairId: pair.pairId, isChinese: false });
+                cards.push({ content: pair.chinese, pairId: pair.pairId, isChinese: true });
+            });
+            shuffleArray(cards).forEach(cardData => {
+                const card = document.createElement('div');
+                card.className = 'card flipped';
+                card.dataset.pairId = cardData.pairId;
+                card.innerHTML = `<div class="card-content card-back">${selectedIcon}</div><div class="card-content card-front ${cardData.isChinese ? 'chinese' : ''}">${cardData.content}</div>`;
+                card.addEventListener('click', handleCardClick);
+                container.appendChild(card);
+            });
+        }
+
+        function shuffleCards() {
+            if (wordPairs.length === 0) return;
+            initCards();
+            document.getElementById('success-message').style.display = 'none';
+            matchedCards = 0;
+            updateScoreDisplay();
+            clearInterval(timerInterval);
+            timer = 0;
+            document.getElementById('timer').innerHTML = '⏱️ 用时: 0秒';
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function handleCardClick(e) {
+            if (isFlipping) return;
+            const card = e.target.closest('.card');
+            if (!card || card.classList.contains('flipped') || flippedCards.includes(card)) return;
+
+            card.classList.add('flipped');
+            flippedCards.push(card);
+            if (flippedCards.length === 2) {
+                isFlipping = true;
+                checkMatch(flippedCards[0], flippedCards[1]);
+            }
+        }
+
+        function checkMatch(card1, card2) {
+            if (card1.dataset.pairId === card2.dataset.pairId) {
+                matchedCards += 2;
+                flippedCards = [];
+                isFlipping = false;
+                updateScoreDisplay();
+                checkWin();
+            } else {
+                setTimeout(() => {
+                    card1.classList.remove('flipped');
+                    card2.classList.remove('flipped');
+                    flippedCards = [];
+                    isFlipping = false;
+                }, 1000);
+            }
+        }
+
+        function checkWin() {
+            if (matchedCards === wordPairs.length * 2) {
+                clearInterval(timerInterval);
+                document.getElementById('success-message').style.display = 'block';
+                document.querySelectorAll('.card').forEach(c => c.style.pointerEvents = 'none');
+            }
+        }
+
+        function startGame() {
+            if (wordPairs.length === 0) return;
+            document.querySelectorAll('.card').forEach(c => { c.style.pointerEvents = 'auto'; c.classList.remove('flipped'); });
+            clearInterval(timerInterval);
+            timer = 0;
+            timerInterval = setInterval(() => {
+                timer++;
+                document.getElementById('timer').innerHTML = `⏱️ 用时: ${timer}秒`;
+            }, 1000);
+        }
+    </script>
+</body>
+</html>

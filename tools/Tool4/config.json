@@ -1,0 +1,9 @@
+{
+  "id": "Tool4",
+  "icon": "🎮",
+  "title": "生词翻翻看",
+  "desc": "通过翻转卡牌加深对目标词汇的记忆",
+  "titleEn": "Words Match Game",
+  "category": "game",
+  "color": "from-[#c8c8e9] to-[#b5b5d9]"
+}

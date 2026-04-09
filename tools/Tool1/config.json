@@ -1,0 +1,9 @@
+{
+  "id": "Tool1",
+  "icon": "🎮",
+  "title": "五子棋",
+  "desc": "利用五子棋来复习同义词和反义词",
+  "titleEn": "Gomoku",
+  "category": "game",
+  "color": "from-[#c8c8e9] to-[#b5b5d9]"
+}

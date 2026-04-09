@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🎮 五子棋大作战 🎮</title>
+    <style>
+        * {
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0fafd;
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><circle cx="50" cy="50" r="40" fill="%23e3f2fd" /></svg>');
+            background-size: 20px 20px;
+            overflow-x: hidden;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            overflow-x: hidden;
+        }
+
+        h1 {
+            color: #2c6b8e;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 0 #fff;
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+
+        .controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .controls button, .controls label, .controls select {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 25px;
+            background-color: #6ab0de;
+            color: white;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls button:hover, .controls label:hover, .controls select:hover {
+            background-color: #4d9bc1;
+            transform: scale(1.05);
+            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .controls input[type="file"] {
+            display: none;
+        }
+
+        .status {
+            font-size: 24px;
+            color: #2c6b8e;
+            margin: 10px 0;
+            min-height: 30px;
+            font-weight: bold;
+        }
+
+        .game-area {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .board-container {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(9, minmax(30px, 50px));
+            grid-template-rows: repeat(9, minmax(30px, 50px));
+            gap: 2px;
+            background: #f8fbff;
+            padding: 10px;
+            border-radius: 12px;
+            width: fit-content;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+            border: 1px solid #cce7ff;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 12px;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .cell:hover {
+            background-color: #f0faff;
+        }
+
+        .pieces-container {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 20px;
+            width: 100%;
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        }
+
+        .pieces {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            max-width: 800px;
+        }
+
+        .red-pieces, .blue-pieces {
+            flex: 1;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            padding: 10px;
+            background: #f8fbff;
+            border-radius: 12px;
+            justify-content: center;
+            max-height: 200px;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+
+        .piece {
+            min-width: 44px;
+            min-height: 44px;
+            width: 50px;
+            height: 50px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: #333;
+            font-weight: bold;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+            user-select: none;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .piece:active {
+            transform: scale(0.95);
+        }
+
+        .piece.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 12px rgba(106, 176, 222, 0.8);
+        }
+
+        .piece.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .red-piece {
+            background-color: #ffb3b3;
+        }
+
+        .blue-piece {
+            background-color: #6ab0de;
+        }
+
+        .victory-message {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 30px 50px;
+            border-radius: 20px;
+            box-shadow: 0 0 20px rgba(0,0,0,0.2);
+            font-size: 32px;
+            color: #ff6b6b;
+            text-align: center;
+            display: none;
+            z-index: 100;
+            animation: pop 0.5s ease-in-out;
+        }
+
+        @keyframes pop {
+            0% { transform: translate(-50%, -50%) scale(0); }
+            50% { transform: translate(-50%, -50%) scale(1.2); }
+            100% { transform: translate(-50%, -50%) scale(1); }
+        }
+
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-3px); }
+            50% { transform: translateX(3px); }
+            75% { transform: translateX(-2px); }
+            100% { transform: translateX(0); }
+        }
+
+        @keyframes placeAnimation {
+            0% { transform: scale(0); }
+            50% { transform: scale(1.2); }
+            100% { transform: scale(1); }
+        }
+
+        .error {
+            animation: shake 0.2s ease-in-out;
+        }
+
+        .cell.placed {
+            animation: placeAnimation 0.3s;
+        }
+
+        /* 平板 */
+        @media (max-width: 1024px) {
+            .board {
+                grid-template-columns: repeat(9, minmax(35px, 45px));
+                grid-template-rows: repeat(9, minmax(35px, 45px));
+            }
+
+            .piece {
+                width: 45px;
+                height: 45px;
+                font-size: 11px;
+            }
+        }
+
+        /* 小平板竖屏 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            h1 {
+                font-size: 32px;
+                margin-bottom: 15px;
+            }
+
+            .controls {
+                gap: 8px;
+                margin-bottom: 15px;
+            }
+
+            .controls button, .controls label {
+                padding: 10px 16px;
+                font-size: 14px;
+            }
+
+            .board {
+                grid-template-columns: repeat(9, minmax(30px, 40px));
+                grid-template-rows: repeat(9, minmax(30px, 40px));
+            }
+
+            .cell {
+                font-size: 10px;
+            }
+
+            .piece {
+                width: 40px;
+                height: 40px;
+                font-size: 10px;
+            }
+
+            .status {
+                font-size: 18px;
+            }
+
+            .pieces-container {
+                padding: 15px;
+            }
+
+            .pieces {
+                gap: 10px;
+            }
+        }
+
+        /* 手机竖屏 */
+        @media (max-width: 540px) {
+            .container {
+                padding: 5px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            .controls {
+                flex-wrap: wrap;
+                justify-content: center;
+            }
+
+            .controls button, .controls label {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+
+            .board-container {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .board {
+                grid-template-columns: repeat(9, 32px);
+                grid-template-rows: repeat(9, 32px);
+            }
+
+            .cell {
+                font-size: 9px;
+            }
+
+            .piece {
+                width: 34px;
+                height: 34px;
+                font-size: 9px;
+            }
+
+            .status {
+                font-size: 16px;
+            }
+
+            .pieces-container {
+                padding: 10px;
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+
+            .red-pieces, .blue-pieces {
+                min-width: 120px;
+            }
+        }
+
+        /* 小手机 */
+        @media (max-width: 380px) {
+            h1 {
+                font-size: 20px;
+            }
+
+            .board {
+                grid-template-columns: repeat(9, 28px);
+                grid-template-rows: repeat(9, 28px);
+            }
+
+            .cell {
+                font-size: 8px;
+            }
+
+            .piece {
+                width: 30px;
+                height: 30px;
+                font-size: 8px;
+            }
+
+            .status {
+                font-size: 14px;
+            }
+        }
+
+        /* 横屏适配 */
+        @media (max-height: 600px) and (orientation: landscape) {
+            h1 {
+                font-size: 24px;
+                margin-bottom: 10px;
+            }
+
+            .board {
+                grid-template-columns: repeat(9, minmax(30px, 40px));
+                grid-template-rows: repeat(9, minmax(30px, 40px));
+            }
+
+            .piece {
+                width: 35px;
+                height: 35px;
+                font-size: 9px;
+            }
+
+            .pieces-container {
+                max-height: 150px;
+                overflow-y: auto;
+            }
+        }
+
+        /* 返回按钮 */
+        .back-btn {
+            position: fixed;
+            top: 15px;
+            left: 15px;
+            background: white;
+            padding: 10px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-decoration: none;
+            color: #555;
+            font-weight: 600;
+            z-index: 9999;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s;
+        }
+        .back-btn:hover {
+            background: #f0f0f0;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        @media (max-width: 540px) {
+            .back-btn {
+                padding: 8px 14px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <a href="../../index.html" class="back-btn">
+        <span>←</span> 返回工具箱
+    </a>
+    <div class="container">
+        <h1>🎮 五子棋大作战 🎮</h1>
+        <div class="controls">
+            <label for="upload">📁 上传文件</label>
+            <input type="file" id="upload" accept=".xlsx, .xls">
+            <button id="start">▶️ 开始游戏</button>
+            <button id="restart">🔄 重新开始</button>
+        </div>
+        <div class="status" id="status"></div>
+        <div class="game-area">
+            <div class="board-container">
+                <div id="board" class="board"></div>
+            </div>
+            <div class="pieces-container">
+                <div class="pieces">
+                    <div class="red-pieces"></div>
+                    <div class="blue-pieces"></div>
+                </div>
+            </div>
+        </div>
+        <div class="victory-message" id="victoryMessage"></div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script>
+        // 回合状态机
+        const STATE = {
+            RED_SELECT: 'RED_SELECT',    // 红方选择棋子
+            RED_PLACE: 'RED_PLACE',    // 红方放置棋子
+            BLUE_SELECT: 'BLUE_SELECT', // 蓝方选择棋子
+            BLUE_PLACE: 'BLUE_PLACE'   // 蓝方放置棋子
+        };
+
+        let game = {
+            wordPairs: [],
+            boardCells: [],
+            redPieces: [],
+            bluePieces: [],
+            isStarted: false,
+            state: STATE.RED_SELECT,
+            selectedPiece: null,
+            lastRedWord: null  // 记录红方最后放置的词
+        };
+
+        const statusEl = document.getElementById('status');
+        const victoryEl = document.getElementById('victoryMessage');
+
+        // 事件绑定
+        document.getElementById('upload').addEventListener('change', handleFile);
+        document.getElementById('start').addEventListener('click', startGame);
+        document.getElementById('restart').addEventListener('click', restartGame);
+
+        // 处理文件上传
+        function handleFile(e) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const json = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+
+                game.wordPairs = json.filter(row => row[0] && row[1]).map(row => ({
+                    red: row[0],
+                    blue: row[1]
+                }));
+
+                game.redPieces = [...game.wordPairs.map(p => p.red)];
+                game.bluePieces = [...game.wordPairs.map(p => p.blue)];
+
+                renderPieces();
+                statusEl.textContent = '文件已加载，点击开始游戏';
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        // 开始游戏
+        function startGame() {
+            if (game.wordPairs.length === 0) {
+                alert('请先上传包含反义词的Excel文件');
+                return;
+            }
+
+            game.isStarted = true;
+            game.state = STATE.RED_SELECT;
+            game.selectedPiece = null;
+            game.lastRedWord = null;
+
+            initBoard();
+            renderPieces();
+            victoryEl.style.display = 'none';
+            updateStatus();
+        }
+
+        // 重新开始
+        function restartGame() {
+            if (!game.isStarted) return;
+
+            game.state = STATE.RED_SELECT;
+            game.selectedPiece = null;
+            game.lastRedWord = null;
+            game.redPieces = [...game.wordPairs.map(p => p.red)];
+            game.bluePieces = [...game.wordPairs.map(p => p.blue)];
+
+            initBoard();
+            renderPieces();
+            victoryEl.style.display = 'none';
+            updateStatus();
+        }
+
+        // 初始化棋盘
+        function initBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+            game.boardCells = [];
+
+            for (let i = 0; i < 81; i++) {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.addEventListener('click', () => onCellClick(cell));
+                board.appendChild(cell);
+                game.boardCells.push(cell);
+            }
+        }
+
+        // 点击棋子
+        function onPieceClick(pieceEl, color) {
+            if (!game.isStarted) return;
+
+            const word = pieceEl.textContent;
+
+            // 检查是否可以选这个棋子
+            if (!canSelectPiece(color, word)) {
+                pieceEl.classList.add('error');
+                setTimeout(() => pieceEl.classList.remove('error'), 200);
+                return;
+            }
+
+            // 取消之前的选中
+            document.querySelectorAll('.piece.selected').forEach(p => p.classList.remove('selected'));
+            pieceEl.classList.add('selected');
+            game.selectedPiece = pieceEl;
+
+            // 状态转换
+            if (game.state === STATE.RED_SELECT) {
+                game.state = STATE.RED_PLACE;
+            } else if (game.state === STATE.BLUE_SELECT) {
+                game.state = STATE.BLUE_PLACE;
+            }
+            updateStatus();
+        }
+
+        // 检查是否可以选这个棋子
+        function canSelectPiece(color, word) {
+            if (color === 'red') {
+                // 红方：只能在 RED_SELECT 状态选择
+                return game.state === STATE.RED_SELECT;
+            } else {
+                // 蓝方：只能在 BLUE_SELECT 状态选择，且必须是红方已放的词的配对
+                if (game.state !== STATE.BLUE_SELECT) return false;
+                if (!game.lastRedWord) return false;
+
+                // 检查这个蓝词是否和 lastRedWord 是同一对
+                const pair = game.wordPairs.find(p => p.red === game.lastRedWord);
+                return pair && pair.blue === word;
+            }
+        }
+
+        // 点击棋盘格子
+        function onCellClick(cell) {
+            if (!game.isStarted || cell.textContent) return;
+
+            // 只有在放置状态才能放棋子
+            if (game.state !== STATE.RED_PLACE && game.state !== STATE.BLUE_PLACE) return;
+            if (!game.selectedPiece) return;
+
+            // 放置棋子
+            const word = game.selectedPiece.textContent;
+            const color = game.state === STATE.RED_PLACE ? 'red' : 'blue';
+
+            cell.textContent = word;
+            cell.className = `cell ${color}-piece placed`;
+
+            // 从备选区移除
+            if (color === 'red') {
+                game.redPieces = game.redPieces.filter(p => p !== word);
+                game.lastRedWord = word;
+            } else {
+                game.bluePieces = game.bluePieces.filter(p => p !== word);
+                game.lastRedWord = null;
+            }
+
+            // 移除选中的棋子
+            game.selectedPiece.remove();
+            game.selectedPiece = null;
+
+            // 检查胜负
+            if (checkWin(color)) return;
+
+            // 状态转换
+            if (color === 'red') {
+                // 红方下完，轮到蓝方选择
+                game.state = STATE.BLUE_SELECT;
+            } else {
+                // 蓝方下完，轮到红方选择
+                game.state = STATE.RED_SELECT;
+            }
+
+            renderPieces();
+            updateStatus();
+        }
+
+        // 渲染棋子
+        function renderPieces() {
+            const redContainer = document.querySelector('.red-pieces');
+            const blueContainer = document.querySelector('.blue-pieces');
+            redContainer.innerHTML = '';
+            blueContainer.innerHTML = '';
+
+            game.redPieces.forEach(word => {
+                const div = document.createElement('div');
+                div.className = 'piece red-piece';
+                div.textContent = word;
+                div.addEventListener('click', () => onPieceClick(div, 'red'));
+                redContainer.appendChild(div);
+            });
+
+            game.bluePieces.forEach(word => {
+                const div = document.createElement('div');
+                div.className = 'piece blue-piece';
+                div.textContent = word;
+                div.addEventListener('click', () => onPieceClick(div, 'blue'));
+                blueContainer.appendChild(div);
+            });
+        }
+
+        // 更新状态显示
+        function updateStatus() {
+            if (!game.isStarted) {
+                statusEl.textContent = '';
+                return;
+            }
+
+            if (game.state === STATE.RED_SELECT) {
+                statusEl.textContent = '🔴 红方选择棋子';
+            } else if (game.state === STATE.RED_PLACE) {
+                statusEl.textContent = '🔴 红方放置棋子';
+            } else if (game.state === STATE.BLUE_SELECT) {
+                statusEl.textContent = '🔵 蓝方选择棋子（匹配红方的词）';
+            } else {
+                statusEl.textContent = '🔵 蓝方放置棋子';
+            }
+        }
+
+        // 检查胜负
+        function checkWin(color) {
+            const cells = game.boardCells.map(cell => ({
+                text: cell.textContent,
+                color: cell.classList.contains('red-piece') ? 'red' :
+                       cell.classList.contains('blue-piece') ? 'blue' : null
+            }));
+
+            const size = 9;
+            let winner = null;
+
+            const checkLine = (start, step) => {
+                for (let i = 0; i <= 5; i++) {
+                    const indices = Array.from({length: 5}, (_, k) => start + step * k);
+                    if (indices.some(idx => idx >= cells.length)) continue;
+
+                    const values = indices.map(idx => cells[idx]);
+                    if (values.every(v => v.color === color && v.text)) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            for (let i = 0; i < size; i++) {
+                for (let j = 0; j < size; j++) {
+                    const idx = i * size + j;
+                    if (checkLine(idx, 1)) { winner = color; break; }          // 横向
+                    if (checkLine(idx, size)) { winner = color; break; }        // 纵向
+                    if (checkLine(idx, size + 1)) { winner = color; break; }   // 主对角线
+                    if (checkLine(idx, size - 1)) { winner = color; break; }  // 副对角线
+                }
+                if (winner) break;
+            }
+
+            if (winner) {
+                showVictory(winner);
+                return true;
+            }
+            return false;
+        }
+
+        function showVictory(winner) {
+            const name = winner === 'red' ? '红方获胜！🔴' : '蓝方获胜！🔵';
+            victoryEl.textContent = name;
+            victoryEl.style.display = 'block';
+            victoryEl.style.backgroundColor = winner === 'red' ? '#ffb3b3' : '#6ab0de';
+            game.isStarted = false;
+        }
+    </script>
+</body>
+</html>

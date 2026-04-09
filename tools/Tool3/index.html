@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>汉字大侦探 - Edu Toolbox</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        
+        /* 汉字大侦探游戏样式 */
+        #inputArea {
+            margin: 20px;
+            padding: 10px;
+            width: 400px;
+            height: 150px;
+            font-size: 16px;
+        }
+        #grid {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 500px;
+            text-align: center;
+        }
+        #grid td {
+            width: 50px;
+            height: 50px;
+            border: 1px solid black;
+            font-size: 20px;
+            font-family: "楷体", sans-serif;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        #wordList {
+            margin: 20px;
+            display: none;
+        }
+        #wordList h2 {
+            text-align: center;
+        }
+        #wordList div {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            padding: 10px;
+            border: 2px dashed #333;
+            border-radius: 10px;
+            background-color: #f9f9f9;
+        }
+        #wordList span {
+            padding: 5px;
+            background-color: #e0f7fa;
+            border: 1px solid #00bcd4;
+            border-radius: 5px;
+        }
+        #generateButton, #saveButton {
+            margin: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #saveButton {
+            display: none;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 返回按钮 -->
+    <a href="../../index.html" 
+       style="position:fixed;top:15px;left:15px;background:white;padding:10px 20px;border-radius:8px;box-shadow:0 2px 8px rgba(0,0,0,0.15);text-decoration:none;color:#333;font-weight:500;z-index:9999;display:flex;align-items:center;gap:5px;">
+       <span>←</span> 返回工具箱
+    </a>
+
+    <!-- 工具标题 -->
+    <div class="text-center pt-20 pb-10">
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">🖨️ 汉字大侦探</h1>
+        <p class="text-gray-600">可生成词语搜索的工作纸</p>
+    </div>
+
+    <!-- 游戏区域 -->
+    <div class="max-w-4xl mx-auto px-4">
+        <div class="bg-white rounded-xl shadow-lg p-8 min-h-[400px]">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6">汉字大侦探</h2>
+            <textarea id="inputArea" placeholder="请输入中文词语，每个词语占一行"></textarea>
+            <button id="generateButton" class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded">生成</button>
+            <div id="gridContainer"></div>
+            <div id="wordList">
+                <h3 class="text-lg font-bold mb-4">请聪明的你找到以下内容吧！</h3>
+                <div id="wordsContainer"></div>
+            </div>
+            <button id="saveButton" class="bg-green-500 hover:bg-green-600 text-white font-bold py-2 px-4 rounded">保存为JPG</button>
+        </div>
+    </div>
+
+    <!-- 底部说明 -->
+    <footer class="text-center py-8 text-gray-400 text-sm">
+        <p>Chinese Words Detective | Edu Toolbox</p>
+    </footer>
+
+    <!-- 汉字大侦探游戏脚本 -->
+    <script>
+        document.getElementById('generateButton').onclick = function() {
+            generateGame();
+        };
+
+        function generateGame() {
+            const input = document.getElementById('inputArea').value;
+            const words = input.split('\n').filter(word => word.trim() !== '');
+            const gridSize = 8;
+            const grid = Array(gridSize).fill().map(() => Array(gridSize).fill(null));
+            const filledWords = [];
+
+            // 将输入框和按钮隐藏
+            document.getElementById('inputArea').style.display = 'none';
+            document.getElementById('generateButton').style.display = 'none';
+            document.getElementById('wordList').style.display = 'block';
+            document.getElementById('saveButton').style.display = 'block';
+
+            try {
+                // 遍历每个词语，尝试将其放入网格
+                words.forEach(word => {
+                    if (word.length === 0) return;
+                    if (!placeWord(word, grid, gridSize)) {
+                        throw new Error(`无法将词语"${word}"放入网格，请检查字数限制（最多64字）`);
+                    }
+                    filledWords.push(word);
+                });
+
+                // 填充随机汉字到剩余格子
+                fillRandomChinese(grid);
+
+                // 生成HTML表格
+                const gridHTML = [];
+                for (let row of grid) {
+                    let rowHTML = '<tr>';
+                    for (let cell of row) {
+                        rowHTML += `<td>${cell}</td>`;
+                    }
+                    rowHTML += '</tr>';
+                    gridHTML.push(rowHTML);
+                }
+                document.getElementById('gridContainer').innerHTML = `
+                    <table id="grid">
+                        ${gridHTML.join('')}
+                    </table>
+                `;
+
+                // 显示单词清单
+                const wordsContainer = document.getElementById('wordsContainer');
+                wordsContainer.innerHTML = filledWords.map(word => `<span>${word}</span>`).join('');
+            } catch (error) {
+                alert(error.message);
+            }
+        }
+
+        // 随机放置词语到网格
+        function placeWord(word, grid, gridSize) {
+            const directions = [
+                { dx: 1, dy: 0 },   // 右
+                { dx: -1, dy: 0 },  // 左
+                { dx: 0, dy: 1 },   // 下
+                { dx: 0, dy: -1 },  // 上
+                { dx: 1, dy: 1 },   // 右下
+                { dx: -1, dy: -1 }, // 左上
+                { dx: 1, dy: -1 },  // 右上
+                { dx: -1, dy: 1 },  // 左下
+            ];
+
+            const maxAttempts = 100;
+            let placed = false;
+
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const startRow = Math.floor(Math.random() * gridSize);
+                const startCol = Math.floor(Math.random() * gridSize);
+                const direction = directions[Math.floor(Math.random() * directions.length)];
+                let canPlace = true;
+
+                // 检查位置是否可用
+                for (let i = 0; i < word.length; i++) {
+                    const row = startRow + i * direction.dy;
+                    const col = startCol + i * direction.dx;
+
+                    if (row < 0 || row >= gridSize || col < 0 || col >= gridSize) {
+                        canPlace = false;
+                        break;
+                    }
+                    if (grid[row][col] !== null && grid[row][col] !== word[i]) {
+                        canPlace = false;
+                        break;
+                    }
+                }
+
+                if (canPlace) {
+                    // 填充词语
+                    for (let i = 0; i < word.length; i++) {
+                        const row = startRow + i * direction.dy;
+                        const col = startCol + i * direction.dx;
+                        grid[row][col] = word[i];
+                    }
+                    placed = true;
+                    break;
+                }
+            }
+
+            return placed;
+        }
+
+        // 填充随机汉字到空白格子
+        function fillRandomChinese(grid) {
+            const commonChars = '的们字他们的么在出是中上以主国下大来用发到人子了年进出本国工和们书外行存会法大他这家日下有进外出不上我你他来全上个而小从别上字国日下也过在出是上中以之的之之的之的之在出是中的在发在是中以主国下大来用发到人子了年进出本国工和';
+            const characters = commonChars.split('');
+
+            for (let i = 0; i < grid.length; i++) {
+                for (let j = 0; j < grid[i].length; j++) {
+                    if (grid[i][j] === null) {
+                        const randomIndex = Math.floor(Math.random() * characters.length);
+                        grid[i][j] = characters[randomIndex];
+                    }
+                }
+            }
+        }
+
+        // 保存为JPG图片
+        document.getElementById('saveButton').onclick = function() {
+            const saveButton = document.getElementById('saveButton');
+            saveButton.style.display = 'none';
+
+            // 创建临时容器，只包含grid和wordList
+            const tempContainer = document.createElement('div');
+            tempContainer.style.padding = '20px';
+            tempContainer.style.backgroundColor = '#fff';
+            
+            // 复制grid容器
+            const gridClone = document.getElementById('gridContainer').cloneNode(true);
+            tempContainer.appendChild(gridClone);
+            
+            // 复制词语列表
+            const wordListClone = document.getElementById('wordList').cloneNode(true);
+            wordListClone.style.display = 'block';
+            tempContainer.appendChild(wordListClone);
+            
+            document.body.appendChild(tempContainer);
+
+            html2canvas(tempContainer, {
+                scale: 2,
+                backgroundColor: '#fff'
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'word-search.jpg';
+                link.href = canvas.toDataURL('image/jpeg');
+                link.click();
+                
+                // 删除临时容器
+                document.body.removeChild(tempContainer);
+                
+                // 保存完成后恢复显示按钮
+                setTimeout(() => {
+                    saveButton.style.display = 'block';
+                }, 200);
+            });
+        }
+    </script>
+    <!-- 添加html2canvas库 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</body>
+</html>
